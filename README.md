@@ -109,7 +109,3 @@ Open and execute `treinamento_cnn.ipynb`
 (**Google Colab recommended**)
 
 ---
-
-
-* Criar uma versão **resumida para LinkedIn**
-* Ajustar o vocabulário para **Computer Vision / AI Engineer** 🚀
