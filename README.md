@@ -1,111 +1,59 @@
+# ⛑️ Workplace Safety: Efficient CNN for PPE Detection
 
-# ⛑️ Global Solution Project: PPE Detector (CNN)
+> **Edge AI Solution** developed for workplace safety, focusing on real-time binary classification of helmet usage. 
 
-**Student:** Giulia Bugatti Fonseca — RM562675
-**Class:** 1TIAPF
-
-Project developed for FIAP’s **Global Solution**, under the theme **“Intelligent Technologies for the Future of Work.”**
-
----
-
-## 1. 🎯 Project Objective
-
-The goal of this project was to develop a **Computer Vision solution** to improve workplace safety, focusing on the **binary classification of helmet usage**.
+[![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![TensorFlow](https://img.shields.io/badge/TensorFlow-2.x-FF6F00?logo=tensorflow&logoColor=white)](https://www.tensorflow.org/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-App-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
 
 ---
 
-## 2. 🛠️ Technologies Used
-
-* **Python 3.10+**
-* **TensorFlow (Keras):** CNN built from scratch
-* **Streamlit:** Demonstration web application (`app.py`)
+## 1. 🎯 Project Overview
+This project addresses industrial safety by implementing a **Computer Vision pipeline** to detect Personal Protective Equipment (PPE). The core objective was to build a highly efficient, lightweight model capable of distinguishing between workers wearing helmets and those without.
 
 ---
 
-## 3. 🗂️ Dataset & Preprocessing: Critical Data Engineering
+## 2. 🏗️ Architecture: Lightweight CNN
+The model was architected from scratch with a focus on **efficiency and deployment stability**.
 
-**Source:** Hard Hat Workers Object Detection Dataset (Roboflow)
-
-### Challenges Addressed (Data Engineering)
-
-* **Noise Filtering (Label Ambiguity):**
-  Removal of **531 samples** with contradictory labels (`head = 1` and `helmet = 1`).
-
-* **Class Balancing (Undersampling):**
-  The original dataset had a **10:1 imbalance** (4301 *helmet* vs. 437 *head*).
-  Undersampling was applied to balance the training/validation set to **437 samples per class**, resulting in a total of **874 images**.
+* **Global Average Pooling 2D:** Used instead of Flatten to drastically reduce parameters and mitigate overfitting.
+* **Batch Normalization:** Integrated for faster convergence and gradient stability.
+* **Parameter Count:** Only **24,001 parameters**, making it ideal for **Edge Computing** and low-latency environments.
 
 ---
 
-## 4. 🏗️ CNN Architecture (Built from Scratch)
+## 3. 🗂️ Data Engineering & Preprocessing
+Significant effort was invested in **Data Quality** (Garbage In, Garbage Out):
 
-The final model is a simplified and stabilized **binary classification architecture** (sigmoid output):
-
-* **Stability Improvements:**
-
-  * Added **BatchNormalization** layers
-  * Replaced `Flatten` with **GlobalAveragePooling2D** to prevent gradient explosion and numerical instability observed in early experiments
-
-* **Result:**
-  The trained model uses only **24,001 parameters**, making it extremely **lightweight and efficient**.
+* **Noise Reduction:** Sanitized the *Hard Hat Workers Dataset* by removing **531 samples** with ambiguous or contradictory labels.
+* **Class Balancing:** Addressed a **10:1 imbalance** through strategic **Undersampling**, resulting in a balanced training set of 874 high-quality images.
 
 ---
 
-## 5. 📊 Results & Analysis
-
-The best performance was achieved after **40 training epochs**.
+## 4. 📊 Performance Metrics
+The model achieved robust results given the data constraints:
 
 * **Training Accuracy:** 83.19%
-* **Final Validation Accuracy:** 84.57%
+* **Validation Accuracy:** **84.57%**
 
-### Learning Curves & Critical Limitations
+> **Analysis of Data Ceiling:** The project identified a performance bottleneck caused by the limited diversity in the "No Helmet" class (437 samples). This transparency in reporting **model limitations** is a key part of the development lifecycle.
 
-Analysis of the learning curves shows that, despite the robust overall performance of **84.57%**, the model exhibits **generalization limitations** for the **“No Helmet” (head)** class.
 
-Experiments revealed that **Data Augmentation (oversampling techniques)** and extended training were unable to overcome the **low diversity and critically small number of only 437 unique samples** in the *No Helmet* class.
-The model has effectively reached a **data-imposed performance ceiling**.
 
 ---
 
-## 6. ⚠️ Next Steps (Market-Ready Solution)
-
-* **Data Acquisition:**
-  Significantly expand the dataset for the *No Helmet* class (minimum **3,000 new unique samples**).
-
-* **Detection Model:**
-  Apply **Transfer Learning** with pre-trained architectures (e.g., **MobileNetV2**) to build an **Object Detection model** (YOLO / SSD) capable of **locating workers in images**, not just classifying cropped inputs.
+## 🚀 Future Roadmap (Scalability)
+To transform this PoC (Proof of Concept) into a production-ready system:
+1.  **Object Detection (YOLO/SSD):** Pivot from classification to real-time detection for multiple workers in a single frame.
+2.  **Transfer Learning:** Implement **MobileNetV2** as a backbone to improve feature extraction while maintaining low latency.
+3.  **Data Expansion:** Integrate ~3,000 new unique samples for the "No Helmet" class to improve generalization.
 
 ---
 
-## 7. 🚀 Demonstration (Streamlit)
-
-The trained model (`meu_modelo_epi.keras`) was deployed in a simple **Streamlit web application**, including a fix for **label inversion in binary_crossentropy**, ensuring an intuitive and user-friendly result display.
-
----
-
-## 8. ⚙️ How to Run the Project
-
-* Keep all files (notebook, `app.py`, `requirements.txt`, model) in the same directory.
-* Create and activate a virtual environment:
-
-  ```bash
-  python -m venv venv
-  ```
-* Install dependencies:
-
-  ```bash
-  pip install -r requirements.txt
-  ```
-
-### Run the web application
-
-```bash
-streamlit run app.py
-```
-
-### Retrain the model
-
-Open and execute `treinamento_cnn.ipynb`
-(**Google Colab recommended**)
+## ⚙️ Setup & Execution
+1. **Environment:** `python -m venv venv`
+2. **Install:** `pip install -r requirements.txt`
+3. **Run Web App:** `streamlit run app.py`
 
 ---
+**Giulia Bugatti** 
