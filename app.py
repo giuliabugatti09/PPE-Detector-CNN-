@@ -1,130 +1,120 @@
-# app.py
+# =================================================================
+# 1. BOILERPLATE DE COMPATIBILIDADE (Obrigatório para Python 3.13)
+# =================================================================
+import os
+import sys
+
+# Ignora conflitos de versão do Protobuf (Erro Gencode/Runtime)
+os.environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'python'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
+
+# Mock para evitar erro de inicialização do Keras/DTypePolicy
+try:
+    from google.protobuf import runtime_version
+    runtime_version.ValidateProtobufRuntimeVersion = lambda *args, **kwargs: None
+except:
+    pass
+
+# =================================================================
+# 2. IMPORTS
+# =================================================================
 import streamlit as st
 import tensorflow as tf
-from PIL import Image
 import numpy as np
+from PIL import Image
 import io
 
-# --- Configuração da Página ---
-st.set_page_config(
-    page_title="Detector de EPI",
-    page_icon="⛑️",
-    layout="wide"
-)
+# =================================================================
+# 3. CONFIGURAÇÃO E CONSTANTES
+# =================================================================
+st.set_page_config(page_title="PPE Safety Detector", page_icon="⛑️", layout="wide")
 
-# --- Constantes ---
-# O modelo foi treinado com estas dimensões
-IMG_SIZE = (128, 128) 
-MODEL_PATH = "meu_modelo_epi.keras" 
+IMG_SIZE = (128, 128)
+# Certifique-se de que o nome do arquivo abaixo é o do seu modelo mais recente
+MODEL_PATH = os.path.join("models", "best_epi_model.keras")
 
-# --- Carregar o Modelo (com cache para otimização) ---
-# A função cache_resource evita recarregar o modelo da memória a cada interação.
+# =================================================================
+# 4. CARREGAMENTO DO MODELO
+# =================================================================
 @st.cache_resource
-def carregar_modelo(caminho_modelo):
-    """Carrega o modelo Keras salvo."""
+def load_my_model():
     try:
-        model = tf.keras.models.load_model(caminho_modelo)
+        # Registro de objetos para compatibilidade entre versões do Keras
+        from keras.src.dtype_policies import dtype_policy
+        tf.keras.utils.get_custom_objects()['DTypePolicy'] = dtype_policy.DTypePolicy
+        
+        model = tf.keras.models.load_model(MODEL_PATH)
         return model
     except Exception as e:
-        # Exibe um erro se o arquivo .keras não for encontrado
-        st.error(f"Erro ao carregar o modelo: Certifique-se de que o arquivo '{MODEL_PATH}' está na mesma pasta. Detalhe: {e}")
+        st.error(f"🚨 Error loading model: {e}")
         return None
 
-model = carregar_modelo(MODEL_PATH)
+model = load_my_model()
 
-# --- Função de Pré-processamento ---
-def processar_imagem(imagem_pil):
-    """Converte uma imagem PIL para o formato que o modelo espera."""
-    # 1. Redimensionar para o tamanho do treino
-    img = imagem_pil.resize(IMG_SIZE)
-    
-    # 2. Converter para um array NumPy
-    img_array = np.array(img)
-    
-    # 3. Garantir que tem 3 canais (remover canal Alfa se for PNG)
-    if img_array.shape[2] == 4:
-        img_array = img_array[:, :, :3]
-        
-    # 4. Normalizar os pixels (de [0, 255] para [0, 1]) - Passo crucial!
-    img_array = img_array / 255.0
-    
-    # 5. Adicionar uma dimensão de "batch" (lote)
-    img_array_expanded = np.expand_dims(img_array, axis=0)
-    
-    return img_array_expanded
+# =================================================================
+# 5. FUNÇÕES DE PROCESSAMENTO
+# =================================================================
+def preprocess(image_pil):
+    # 1. Resize para o padrão do treino
+    img = image_pil.resize(IMG_SIZE)
+    # 2. Garantir 3 canais (RGB)
+    if img.mode != 'RGB':
+        img = img.convert('RGB')
+    # 3. Normalização (Crucial para evitar predições viciadas)
+    img_array = np.array(img) / 255.0
+    # 4. Expansão para formato de lote (Batch)
+    return np.expand_dims(img_array, axis=0)
 
-# --- Interface do Streamlit ---
+# =================================================================
+# 6. INTERFACE STREAMLIT
+# =================================================================
+st.title("⛑️ Global Solution: PPE Detection System")
+st.subheader("Safety Compliance Monitoring via Computer Vision")
 
-st.title("⛑️ Detector de Equipamento de Proteção Individual (EPI)")
-st.subheader("Solução de Visão Computacional para Detecção de Capacetes")
-
-st.markdown("""
-Esta aplicação usa uma Rede Neural Convolucional (CNN) treinada do zero para
-classificar se uma imagem contém uma pessoa **sem capacete** ('head') ou **com capacete** ('helmet').
+st.info("""
+**System Overview:** This CNN model identifies safety violations by distinguishing 
+between workers with protective headgear and those at risk.
 """)
 
-# Dividir a interface em colunas para melhor organização
 col1, col2 = st.columns(2)
 
 with col1:
-    st.header("1. Faça o Upload da Imagem")
-    
-    # Ficheiro de Upload
-    uploaded_file = st.file_uploader(
-        "Escolha uma imagem de teste (jpg, jpeg, png)...", 
-        type=["jpg", "jpeg", "png"]
-    )
-    
-    if uploaded_file is not None:
-        # Ler a imagem
-        image = Image.open(uploaded_file)
-        
-        st.image(image, caption="Imagem Carregada", use_column_width=True)
+    st.header("1. Image Capture/Upload")
+    uploaded_file = st.file_uploader("Upload worker photo for analysis...", type=["jpg", "jpeg", "png"])
+    if uploaded_file:
+        img = Image.open(uploaded_file)
+        st.image(img, caption="Target Image", use_container_width=True)
 
 with col2:
-    st.header("2. Resultado da Predição")
-    
-    if uploaded_file is not None and model is not None:
-        # Mensagem de carregamento visual
-        with st.spinner("Analisando a imagem..."):
+    st.header("2. Safety Analysis")
+    if uploaded_file and model:
+        with st.spinner("Analyzing PPE compliance..."):
+            processed_img = preprocess(img)
+            prediction = model.predict(processed_img)
+            score = prediction[0][0] # Saída Sigmoid (0.0 a 1.0)
             
-            imagem_processada = processar_imagem(image)
-            predicao_bruta = model.predict(imagem_processada)
-            confianca_bruta = predicao_bruta[0][0] # Valor entre 0.0 e 1.0
+            # --- LÓGICA DE DECISÃO (BASEADA NO CLASS MAPPING) ---
+            # De acordo com seu treino: Class 0 = Head | Class 1 = Helmet
             
-            # --- CORREÇÃO DA INVERSÃO DE RÓTULOS (CRÍTICO) ---
-            # O modelo treinado inverteu as classes internamente (0 -> 'COM CAPACETE').
-            # Ajustamos a lógica de exibição aqui:
-            
-            if confianca_bruta < 0.5: 
-                # Se o valor é baixo (perto de 0.0), o modelo está a prever a classe 0 (SEM CAPACETE).
-                # Mas, devido à inversão, a classe 0 REAL é COM CAPACETE.
-                classe = "COM CAPACETE"
-                # Usamos (1 - valor_bruto) para obter a confiança do oposto
-                confianca_percentual = (1 - confianca_bruta) * 100 
-                st.success(f"**Resultado:** {classe}")
+            if score < 0.5:
+                # Valores próximos de 0 indicam 'Head' (Sem Capacete)
+                label = "NO HELMET DETECTED (DANGER)"
+                conf = (1 - score) * 100
+                st.error(f"### Status: {label} ⚠️")
+                st.warning("Immediate safety intervention required.")
             else:
-                # Se o valor é alto (perto de 1.0), o modelo está a prever a classe 1 (COM CAPACETE).
-                # Mas, devido à inversão, a classe 1 REAL é SEM CAPACETE.
-                classe = "SEM CAPACETE"
-                confianca_percentual = confianca_bruta * 100
-                st.error(f"**Resultado:** {classe}")
-                
-
-            st.metric(
-                label=f"Confiança em '{classe}'",
-                value=f"{confianca_percentual:.2f} %"
-            )
+                # Valores próximos de 1 indicam 'Helmet' (Protegido)
+                label = "HELMET DETECTED (SAFE)"
+                conf = score * 100
+                st.success(f"### Status: {label} ✅")
+                st.balloons()
             
-            st.info("""
-            **Como funciona:**
-            * O modelo binário (Sigmoid) retorna um valor entre 0.0 e 1.0.
-            * **Observação:** Devido a um mapeamento interno durante o treino, os rótulos foram invertidos. A lógica de exibição foi corrigida para que a predição seja sempre intuitiva:
-            * **Valores próximos de 0.0 (saída do modelo) agora significam 'COM CAPACETE'.**
-            * **Valores próximos de 1.0 (saída do modelo) agora significam 'SEM CAPACETE'.**
-            """)
+            st.metric("Detection Confidence", f"{conf:.2f}%")
+            
+            with st.expander("Technical Logs"):
+                st.write(f"Raw Model Probability: `{score:.4f}`")
+                st.write(f"Class Mapping: `0: Head, 1: Helmet`")
 
-    elif model is None:
-        st.error("Modelo 'meu_modelo_epi.keras' não encontrado. Certifique-se de que está na mesma pasta que o app.py.")
-    else:
-        st.info("Aguardando o upload de uma imagem...")
+st.sidebar.markdown("---")
+st.sidebar.write("👤 **Developer:** Giulia Bugatti")
+st.sidebar.write("🎓 **Institution:** FIAP")
