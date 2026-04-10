@@ -31,7 +31,7 @@ st.set_page_config(page_title="PPE Safety Detector", page_icon="⛑️", layout=
 
 IMG_SIZE = (128, 128)
 # Certifique-se de que o nome do arquivo abaixo é o do seu modelo mais recente
-MODEL_PATH = os.path.join("models", "best_epi_model.keras")
+MODEL_PATH = os.path.join("models", "best_epi_model (2).keras")
 
 # =================================================================
 # 4. CARREGAMENTO DO MODELO
